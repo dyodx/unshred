@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use prometheus::{register_int_counter_vec_with_registry, IntCounterVec, Registry};
-use solana_sdk::{bs58, pubkey::Pubkey, transaction::VersionedTransaction};
+use solana_pubkey::Pubkey;
+use solana_transaction::versioned::VersionedTransaction;
 use tokio::sync::mpsc::Sender;
 use unshred::{TransactionEvent, TransactionHandler};
 

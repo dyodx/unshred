@@ -3,16 +3,15 @@
 use anyhow::Result;
 use rand::Rng;
 use solana_entry::entry::Entry;
+use solana_hash::Hash;
+use solana_instruction::{AccountMeta, Instruction};
+use solana_keypair::Keypair;
 use solana_ledger::shred::DATA_SHREDS_PER_FEC_BLOCK;
-use solana_sdk::{
-    hash::Hash,
-    instruction::{AccountMeta, Instruction},
-    message::Message,
-    pubkey::Pubkey,
-    signature::{Keypair, SIGNATURE_BYTES},
-    signer::Signer,
-    transaction::{Transaction, VersionedTransaction},
-};
+use solana_message::Message;
+use solana_pubkey::Pubkey;
+use solana_signature::SIGNATURE_BYTES;
+use solana_signer::Signer;
+use solana_transaction::{versioned::VersionedTransaction, Transaction};
 use std::{
     collections::VecDeque,
     net::UdpSocket,
@@ -30,15 +29,17 @@ const SLOT_DURATION_MS: u64 = 400;
 // Constants
 const TICKS_PER_SLOT: u64 = 64;
 const FEC_SET_SIZE: u32 = 32;
-const MERKLE_DATA_VARIANT: u8 = 0x80;
-const MERKLE_CODE_VARIANT: u8 = 0x40;
+const MERKLE_DATA_VARIANT: u8 = 0x90;
+const MERKLE_CODE_VARIANT: u8 = 0x60;
 const MERKLE_DATA_SHRED_SIZE: usize = 1203;
 const MERKLE_CODE_SHRED_SIZE: usize = 1228;
 const PROOF_HEIGHT: u8 = 6; // log_2(32+32); 32 Data and 32 Coding shreds
-const MERKLE_PROOF_SIZE: usize = PROOF_HEIGHT as usize * 20;
-// shred size - headers - merkle proof
+const SIZE_OF_MERKLE_PROOF_ENTRY: usize = 20;
+const SIZE_OF_MERKLE_ROOT: usize = 32; // Chained merkle root
+const MERKLE_PROOF_SIZE: usize = PROOF_HEIGHT as usize * SIZE_OF_MERKLE_PROOF_ENTRY;
+// shred size - headers - chained merkle root - merkle proof
 const MERKLE_DATA_CAPACITY: usize =
-    MERKLE_DATA_SHRED_SIZE - DATA_OFFSET_PAYLOAD - MERKLE_PROOF_SIZE;
+    MERKLE_DATA_SHRED_SIZE - DATA_OFFSET_PAYLOAD - SIZE_OF_MERKLE_ROOT - MERKLE_PROOF_SIZE;
 
 // Estimates
 const MIN_TARGET_ENTRIES_PER_BATCH: usize = 1;
@@ -469,7 +470,7 @@ impl MockValidator {
         let to = &self.user_keypairs[idx % self.user_keypairs.len()];
 
         let instruction =
-            solana_sdk::system_instruction::transfer(&from.pubkey(), &to.pubkey(), 1_234_567);
+            solana_system_interface::instruction::transfer(&from.pubkey(), &to.pubkey(), 1_234_567);
 
         let message = Message::new(&[instruction], Some(&from.pubkey()));
         let tx = Transaction::new(&[&from], message, self.recent_blockhash);

@@ -12,7 +12,7 @@ use std::sync::Arc;
 pub use config::UnshredConfig;
 
 use anyhow::Result;
-use solana_sdk::transaction::VersionedTransaction;
+use solana_transaction::versioned::VersionedTransaction;
 
 use crate::processor::ShredProcessor;
 
